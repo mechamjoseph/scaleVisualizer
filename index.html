@@ -1,0 +1,666 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Scale Visualizer</title>
+    <style>
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        background-color: #f4f4f9;
+        padding: 20px;
+        color: #333;
+      }
+      .container {
+        max-width: 1000px;
+        margin: 0 auto;
+      }
+      .controls {
+        display: flex;
+        gap: 20px;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+      }
+
+      /* Updated Wrapper Styling - removed pointer-events: none */
+      .control-column {
+        display: flex;
+        flex-direction: column;
+        flex: 1;
+        transition: opacity 0.3s ease;
+      }
+      .control-column.disabled {
+        opacity: 0.3;
+      }
+
+      .control-group {
+        display: flex;
+        flex-direction: column;
+        padding: 12px;
+        border-radius: 6px;
+        position: relative;
+      }
+      .control-group.bg-key1 {
+        background-color: #0044cc;
+        color: white;
+      }
+      .control-group.bg-key2 {
+        background-color: #b30000;
+        color: white;
+      }
+
+      /* Slider Toggle Styling */
+      .switch {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 34px;
+        height: 18px;
+        cursor: pointer;
+      }
+      .switch input {
+        opacity: 0;
+        width: 0;
+        height: 0;
+      }
+      .slider {
+        position: absolute;
+        cursor: pointer;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(255, 255, 255, 0.3);
+        transition: 0.3s;
+        border-radius: 18px;
+      }
+      .slider:before {
+        position: absolute;
+        content: "";
+        height: 12px;
+        width: 12px;
+        left: 3px;
+        bottom: 3px;
+        background-color: white;
+        transition: 0.3s;
+        border-radius: 50%;
+      }
+      input:checked + .slider {
+        background-color: rgba(255, 255, 255, 0.5);
+      }
+      input:checked + .slider:before {
+        transform: translateX(16px);
+      }
+
+      label.main-label {
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+      select {
+        padding: 8px;
+        border-radius: 4px;
+        border: 1px solid #ccc;
+        font-size: 1rem;
+        width: 100%;
+        box-sizing: border-box;
+      }
+
+      .radio-group {
+        display: flex;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .radio-group input[type="radio"] {
+        display: none;
+      }
+      .radio-group label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex: 1;
+        cursor: pointer;
+        background: #f8f9fa;
+        border: 1px solid #e2e8f0;
+        padding: 8px 12px;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        color: #475569;
+        transition: all 0.15s ease;
+        text-align: center;
+      }
+      .radio-group label:hover {
+        background: #edf2f7;
+        border-color: #cbd5e1;
+        color: #1e293b;
+      }
+      .key1-radios label:has(input:checked) {
+        background: #0044cc;
+        border-color: #0044cc;
+        color: white;
+        font-weight: 600;
+      }
+      .key2-radios label:has(input:checked) {
+        background: #b30000;
+        border-color: #b30000;
+        color: white;
+        font-weight: 600;
+      }
+      .inst-radio-group label:has(input:checked) {
+        background: #1e293b;
+        border-color: #1e293b;
+        color: white;
+        font-weight: 600;
+      }
+
+      .legend {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        margin-bottom: 20px;
+        background: white;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+      }
+      .legend-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .legend-row strong {
+        font-size: 0.95rem;
+        color: #1e293b;
+        min-width: 120px;
+      }
+      .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        background: #f8f9fa;
+        border: 1px solid #e2e8f0;
+        padding: 6px 14px;
+        border-radius: 20px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.15s ease;
+      }
+      .legend-item:hover {
+        background: #edf2f7;
+        border-color: #cbd5e1;
+      }
+      .legend-item.inactive {
+        opacity: 0.4;
+        background: #f1f5f9;
+      }
+
+      .shape-demo {
+        width: 18px;
+        height: 18px;
+        background: #555;
+      }
+      .circle {
+        border-radius: 50%;
+      }
+      .triangle {
+        clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+      }
+      .pentagon {
+        clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+      }
+      .open-circle-demo {
+        border: 2px solid #555;
+        background: #eee;
+        border-radius: 50%;
+        box-sizing: border-box;
+      }
+
+      .fretboard-scroll-container {
+        overflow-x: auto;
+        padding-bottom: 10px;
+      }
+      .fret-numbers-row {
+        display: flex;
+        align-items: center;
+        height: 25px;
+        margin-bottom: 6px;
+      }
+      .string-label-spacer {
+        width: 45px;
+        flex-shrink: 0;
+      }
+      .fret-number-label {
+        flex: 1;
+        min-width: 70px;
+        text-align: center;
+        font-weight: bold;
+        color: #666;
+        font-size: 0.85rem;
+      }
+      .fretboard {
+        background: #dfcfb7;
+        border: 4px solid #5c4a3c;
+        border-radius: 6px;
+      }
+
+      .fretboard.hide-shape-1 .shape-1 {
+        display: none;
+      }
+      .fretboard.hide-shape-3 .shape-3 {
+        display: none;
+      }
+      .fretboard.hide-shape-5 .shape-5 {
+        display: none;
+      }
+      .fretboard.hide-shape-other .shape-2,
+      .fretboard.hide-shape-other .shape-4,
+      .fretboard.hide-shape-other .shape-6,
+      .fretboard.hide-shape-other .shape-7 {
+        display: none;
+      }
+      .fretboard.hide-color-1 .color-key1 {
+        display: none;
+      }
+      .fretboard.hide-color-2 .color-key2 {
+        display: none;
+      }
+
+      .string {
+        position: relative;
+        display: flex;
+        align-items: center;
+        height: 44px;
+      }
+      .string::before {
+        content: "";
+        position: absolute;
+        left: 45px;
+        right: 0;
+        top: 50%;
+        height: 2px;
+        background: #707070;
+        z-index: 1;
+      }
+      .bass-layout #string-G::before {
+        height: 3px;
+      }
+      .bass-layout #string-D::before {
+        height: 4px;
+      }
+      .bass-layout #string-A::before {
+        height: 5px;
+      }
+      .bass-layout #string-E::before {
+        height: 6px;
+      }
+      .guitar-layout #string-highE::before {
+        height: 1.5px;
+      }
+      .guitar-layout #string-B::before {
+        height: 1.5px;
+      }
+      .guitar-layout #string-G::before {
+        height: 2px;
+      }
+      .guitar-layout #string-D::before {
+        height: 2.5px;
+      }
+      .guitar-layout #string-A::before {
+        height: 3px;
+      }
+      .guitar-layout #string-lowE::before {
+        height: 4px;
+      }
+
+      .string-label {
+        width: 45px;
+        text-align: center;
+        font-weight: bold;
+        color: #fff;
+        background: #2d1f18;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: sticky;
+        left: 0;
+        z-index: 5;
+      }
+      .fret {
+        flex: 1;
+        min-width: 70px;
+        height: 100%;
+        border-right: 3px solid #9c8a7575;
+        position: relative;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
+        padding: 0 4px;
+        box-sizing: border-box;
+      }
+      .fret:last-of-type {
+        border-right: none;
+      }
+      .note {
+        width: 22px;
+        height: 22px;
+        z-index: 3;
+        position: relative;
+        cursor: pointer;
+      }
+      .shape-1 {
+        border-radius: 50%;
+        box-shadow: 0 0 0 1.5px #dfcfb7;
+      }
+      .color-key1.shape-1 {
+        background-color: #0044cc;
+      }
+      .color-key2.shape-1 {
+        background-color: #b30000;
+      }
+      .shape-3::before,
+      .shape-5::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+      .shape-3::before {
+        clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+      }
+      .shape-5::before {
+        clip-path: polygon(50% 0%, 100% 38%, 82% 100%, 18% 100%, 0% 38%);
+      }
+      .color-key1.shape-3::before,
+      .color-key1.shape-5::before {
+        background-color: #0044cc;
+      }
+      .color-key2.shape-3::before,
+      .color-key2.shape-5::before {
+        background-color: #b30000;
+      }
+      .shape-2,
+      .shape-4,
+      .shape-6,
+      .shape-7 {
+        box-sizing: border-box;
+        border: 2.5px solid transparent;
+        border-radius: 50%;
+        box-shadow: 0 0 0 1.5px #dfcfb7;
+      }
+      .color-key1.shape-2,
+      .color-key1.shape-4,
+      .color-key1.shape-6,
+      .color-key1.shape-7 {
+        border-color: #0044cc;
+        background-color: #7676c47d;
+      }
+      .color-key2.shape-2,
+      .color-key2.shape-4,
+      .color-key2.shape-6,
+      .color-key2.shape-7 {
+        border-color: #b30000;
+        background-color: #c476767d;
+      }
+
+      .note-popup {
+        position: absolute;
+        background: #1e293b;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        z-index: 100;
+        pointer-events: none;
+        opacity: 0;
+        transition: opacity 0.12s ease;
+        white-space: nowrap;
+      }
+      .note-popup.visible {
+        opacity: 1;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>Scale Visualizer</h2>
+
+      <div class="controls">
+        <div id="col1" class="control-column">
+          <div id="group1" class="control-group bg-key1">
+            <label class="switch"><input type="checkbox" checked onchange="toggleColor(1, this.checked, 'col1')" /> <span class="slider"></span></label>
+            <label class="main-label">First Key:</label>
+            <select id="key1" onchange="updateVisualizer()"></select>
+          </div>
+          <div class="radio-group key1-radios">
+            <label><input type="radio" name="mode1" value="major" checked onchange="updateVisualizer()" /> Major</label>
+            <label><input type="radio" name="mode1" value="minor" onchange="updateVisualizer()" /> Minor</label>
+          </div>
+        </div>
+        <div id="col2" class="control-column">
+          <div id="group2" class="control-group bg-key2">
+            <label class="switch"><input type="checkbox" checked onchange="toggleColor(2, this.checked, 'col2')" /> <span class="slider"></span></label>
+            <label class="main-label">Second Key:</label>
+            <select id="key2" onchange="updateVisualizer()"></select>
+          </div>
+          <div class="radio-group key2-radios">
+            <label><input type="radio" name="mode2" value="major" checked onchange="updateVisualizer()" /> Major</label>
+            <label><input type="radio" name="mode2" value="minor" onchange="updateVisualizer()" /> Minor</label>
+          </div>
+        </div>
+      </div>
+
+      <div class="legend">
+        <div class="legend-row">
+          <strong>Musical Instrument:</strong>
+          <div class="radio-group inst-radio-group" style="margin-top: 0; flex: 1; max-width: 300px">
+            <label><input type="radio" name="instrument" value="bass" checked onchange="handleInstrumentChange()" /> 4-String Bass</label>
+            <label><input type="radio" name="instrument" value="guitar" onchange="handleInstrumentChange()" /> 6-String Guitar</label>
+          </div>
+        </div>
+        <div class="legend-row">
+          <strong>Scale Intervals:</strong>
+          <div class="legend-item" data-target="1">
+            <div class="shape-demo circle"></div>
+            1st
+          </div>
+          <div class="legend-item" data-target="3">
+            <div class="shape-demo triangle"></div>
+            3rd
+          </div>
+          <div class="legend-item" data-target="5">
+            <div class="shape-demo pentagon"></div>
+            5th
+          </div>
+          <div class="legend-item" data-target="other">
+            <div class="shape-demo open-circle-demo"></div>
+            Other
+          </div>
+        </div>
+      </div>
+
+      <div class="fretboard-scroll-container">
+        <div class="fret-numbers-row" id="fret-numbers-row"></div>
+        <div class="fretboard" id="fretboard"></div>
+      </div>
+    </div>
+
+    <div id="note-popup" class="note-popup"></div>
+
+    <script>
+      const standardRootNotes = ["A", "A♯ / B♭", "B", "C", "C♯ / D♭", "D", "D♯ / E♭", "E", "F", "F♯ / G♭", "G", "G♯ / A♭"]
+      const pitchToNames = { ...standardRootNotes }
+      const nameToPitch = {}
+      standardRootNotes.forEach((name, i) => (nameToPitch[name] = i))
+
+      const scale_interval_indexes = { major: { 1: 0, 2: 2, 3: 4, 4: 5, 5: 7, 6: 9, 7: 11 }, minor: { 1: 0, 2: 2, 3: 3, 4: 5, 5: 7, 6: 8, 7: 10 } }
+      const degree_suffixes = { 1: "1st", 2: "2nd", 3: "3rd", 4: "4th", 5: "5th", 6: "6th", 7: "7th" }
+
+      const instrument_strings = {
+        bass: [
+          { label: "G", id: "string-G" },
+          { label: "D", id: "string-D" },
+          { label: "A", id: "string-A" },
+          { label: "E", id: "string-E" },
+        ],
+        guitar: [
+          { label: "E", id: "string-highE" },
+          { label: "B", id: "string-B" },
+          { label: "G", id: "string-G" },
+          { label: "D", id: "string-D" },
+          { label: "A", id: "string-A" },
+          { label: "E", id: "string-lowE" },
+        ],
+      }
+
+      function getScalePitches(root, mode) {
+        const rootPitch = nameToPitch[root]
+        if (rootPitch === undefined) return {}
+        const formula = scale_interval_indexes[mode]
+        const p = {}
+        for (const [d, s] of Object.entries(formula)) p[d] = (rootPitch + s) % 12
+        return p
+      }
+
+      function toggleColor(colorIndex, isChecked, colId) {
+        document.getElementById("note-popup").classList.remove("visible")
+        const fb = document.getElementById("fretboard")
+        const col = document.getElementById(colId)
+        if (!isChecked) {
+          fb.classList.add(`hide-color-${colorIndex}`)
+          col.classList.add("disabled")
+        } else {
+          fb.classList.remove(`hide-color-${colorIndex}`)
+          col.classList.remove("disabled")
+        }
+      }
+
+      function buildInstrumentLayout() {
+        const fretboard = document.getElementById("fretboard"),
+          numbersRow = document.getElementById("fret-numbers-row")
+        fretboard.innerHTML = ""
+        numbersRow.innerHTML = ""
+        const selected = document.querySelector('input[name="instrument"]:checked').value
+        fretboard.className = `fretboard ${selected}-layout`
+
+        document.querySelectorAll(".legend-item.inactive").forEach((item) => {
+          fretboard.classList.add(`hide-shape-${item.dataset.target}`)
+        })
+        ;[1, 2].forEach((i) => {
+          const checkbox = document.querySelector(`#col${i} input[type="checkbox"]`)
+          if (!checkbox.checked) {
+            fretboard.classList.add(`hide-color-${i}`)
+            document.getElementById(`col${i}`).classList.add("disabled")
+          }
+        })
+
+        const spacer = document.createElement("div")
+        spacer.className = "string-label-spacer"
+        numbersRow.appendChild(spacer)
+        for (let f = 0; f <= 11; f++) {
+          const nl = document.createElement("div")
+          nl.className = "fret-number-label"
+          nl.textContent = f
+          numbersRow.appendChild(nl)
+        }
+        instrument_strings[selected].forEach((s) => {
+          const row = document.createElement("div")
+          row.className = "string"
+          row.id = s.id
+          const label = document.createElement("div")
+          label.className = "string-label"
+          label.textContent = s.label
+          row.appendChild(label)
+          for (let f = 0; f <= 11; f++) {
+            const fret = document.createElement("div")
+            fret.className = "fret"
+            fret.id = `fret-${s.id}-${f}`
+            row.appendChild(fret)
+          }
+          fretboard.appendChild(row)
+        })
+        updateVisualizer()
+      }
+
+      function handleInstrumentChange() {
+        buildInstrumentLayout()
+      }
+
+      function updateVisualizer() {
+        const popup = document.getElementById("note-popup")
+        popup.classList.remove("visible")
+        const k1 = document.getElementById("key1").value,
+          k2 = document.getElementById("key2").value
+        const m1 = document.querySelector('input[name="mode1"]:checked').value,
+          m2 = document.querySelector('input[name="mode2"]:checked').value
+        const s1 = getScalePitches(k1, m1),
+          s2 = getScalePitches(k2, m2)
+
+        const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1)
+
+        instrument_strings[document.querySelector('input[name="instrument"]:checked').value].forEach((s) => {
+          const start = nameToPitch[s.label]
+          for (let f = 0; f <= 11; f++) {
+            const box = document.getElementById(`fret-${s.id}-${f}`)
+            box.querySelectorAll(".note").forEach((n) => n.remove())
+            const pitch = (start + f) % 12
+            ;[s1, s2].forEach((scale, i) => {
+              const deg = Object.keys(scale).find((d) => scale[d] === pitch)
+              if (deg) {
+                const note = document.createElement("div")
+                note.className = `note shape-${deg} color-key${i + 1}`
+                note.dataset.noteInfo = `<strong>${pitchToNames[pitch]}</strong> — ${degree_suffixes[deg]} of ${i === 0 ? k1 : k2} ${i === 0 ? cap(m1) : cap(m2)}`
+                box.appendChild(note)
+              }
+            })
+          }
+        })
+      }
+
+      document.querySelectorAll(".legend-item").forEach((item) => {
+        item.addEventListener("click", () => {
+          item.classList.toggle("inactive")
+          document.getElementById("note-popup").classList.remove("visible")
+          document.getElementById("fretboard").classList.toggle(`hide-shape-${item.dataset.target}`)
+        })
+      })
+
+      document.getElementById("fretboard").addEventListener("click", (e) => {
+        const n = e.target.closest(".note")
+        if (!n) {
+          document.getElementById("note-popup").classList.remove("visible")
+          return
+        }
+        const p = document.getElementById("note-popup")
+        p.innerHTML = n.dataset.noteInfo
+        const r = n.getBoundingClientRect()
+        p.style.left = `${r.left + window.scrollX + r.width / 2}px`
+        p.style.top = `${r.top + window.scrollY - 8}px`
+        p.classList.add("visible")
+      })
+
+      standardRootNotes.forEach((n) => {
+        ;["key1", "key2"].forEach((id) => {
+          const o = document.createElement("option")
+          o.value = n
+          o.textContent = n
+          document.getElementById(id).appendChild(o)
+        })
+      })
+      document.getElementById("key1").value = "C"
+      document.getElementById("key2").value = "G"
+      buildInstrumentLayout()
+    </script>
+  </body>
+</html>
